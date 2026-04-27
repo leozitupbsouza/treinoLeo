@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App de Treino - Leo</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e293b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #333333;
+            --border: #e2e8f0;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .container { max-width: 700px; margin: auto; }
+        h1 { text-align: center; color: var(--primary); font-size: 1.5em; }
+        
+        /* Import Section */
+        .import-section { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed var(--primary); }
+        .import-section textarea { width: 100%; height: 60px; margin-bottom: 10px; border: 1px solid #bae6fd; border-radius: 4px; padding: 5px; box-sizing: border-box; }
+        
+        /* Cards */
+        .card { background: var(--card); border-radius: 10px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { margin-top: 0; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+        
+        /* Exercises */
+        .exercise-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .exercise-row:last-child { border-bottom: none; }
+        .exercise-info { flex-grow: 1; margin-right: 15px; }
+        .exercise-info b { display: block; font-size: 1em; color: var(--secondary); }
+        .exercise-info span { font-size: 0.85em; color: #64748b; display: block; }
+        
+        /* Inputs */
+        input[type="number"] { width: 55px; padding: 8px 5px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; }
+        .checkbox { width: 28px; height: 28px; cursor: pointer; accent-color: var(--primary); }
+        
+        /* Timer */
+        .timer-box { text-align: center; background: var(--secondary); color: white; padding: 20px; border-radius: 10px; }
+        #timer-display { font-size: 3em; font-weight: bold; font-variant-numeric: tabular-nums; margin-bottom: 15px; }
+        .btn-group { display: flex; justify-content: center; gap: 10px; }
+        
+        /* Buttons */
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; }
+        .btn-pause { background: #f59e0b; }
+        .btn-reset { background: #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 Evolução de Treino - Leo</h1>
+
+    <div class="import-section">
+        <label for="importData"><b>🔄 Atualizar Macrociclo:</b> Cole o novo código aqui</label>
+        <textarea id="importData" placeholder="Cole o código JSON do novo treino aqui..."></textarea>
+        <button class="btn" style="width: 100%;" onclick="importarTreino()">Importar Novo Treino</button>
+    </div>
+
+    <div id="app-treino"></div>
+
+    <div class="card">
+        <h3>⏱️ Cronômetro TAF (12 min)</h3>
+        <div class="timer-box">
+            <div id="timer-display">12:00</div>
+            <div class="btn-group">
+                <button class="btn" onclick="startTimer()">▶ Iniciar</button>
+                <button class="btn btn-pause" onclick="pauseTimer()">⏸ Pausar</button>
+                <button class="btn btn-reset" onclick="resetTimer()">⏹ Zerar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // JSON de Base - O Treino Atual V4
+    const treinoDefault = [
+        {
+            titulo: "1º TREINO: PEITORAL / DELTOIDE / TRÍCEPS",
+            exercicios: [
+                { id: "t1_e1", nome: "Rotação Ext. Polia Unilateral", series: "2x 15 (Aquecimento)" },
+                { id: "t1_e2", nome: "Supino Reto", series: "3x 10 a 12" },
+                { id: "t1_e3", nome: "Supino Declinado ou Paralelas", series: "3x 10 a 12" },
+                { id: "t1_e4", nome: "Crucifixo Reto", series: "3x 10 a 12" },
+                { id: "t1_e5", nome: "Cross Over Polia Baixa", series: "3x 10 a 12" },
+                { id: "t1_e6", nome: "Elevação Lateral na Polia", series: "3x 10 a 12" },
+                { id: "t1_e7", nome: "Tríceps Francesa", series: "4x 10 a 12 (Drop set)" },
+                { id: "t1_e8", nome: "Cardio", series: "30 min (Moderado)" }
+            ]
+        },
+        {
+            titulo: "2º TREINO: INFERIORES E ABDÔMEN",
+            exercicios: [
+                { id: "t2_e1", nome: "Agachamento Peso Corporal", series: "1x 15 (Aquecimento)" },
+                { id: "t2_e2", nome: "Agachamento Livre", series: "3x 10 a 12" },
+                { id: "t2_e3", nome: "Leg Press 45º", series: "4x 10 a 12" },
+                { id: "t2_e4", nome: "Cadeira Extensora", series: "4x 10 a 12" },
+                { id: "t2_e5", nome: "Afundo ou Búlgaro", series: "3x 10 a 12" },
+                { id: "t2_e6", nome: "Panturrilha Sentado", series: "4x 10 a 12" },
+                { id: "t2_e7", nome: "Prancha Isométrica", series: "3x Máximo" },
+                { id: "t2_e8", nome: "Abdominal Bicicleta", series: "3x 10 a 12" }
+            ]
+        },
+        {
+            titulo: "3º TREINO: DORSAIS / BÍCEPS / POSTERIOR DE OMBRO",
+            exercicios: [
+                { id: "t3_e1", nome: "Rotação Ext. Polia Unilateral", series: "1x 10 cada lado" },
+                { id: "t3_e2", nome: "Puxada Alta Supinada", series: "3x 10 a 12" },
+                { id: "t3_e3", nome: "Remada Baixa Triângulo", series: "4x 10 a 12" },
+                { id: "t3_e4", nome: "Pulldown com Corda", series: "3x 10 a 12" },
+                { id: "t3_e5", nome: "Face Pull na Polia", series: "3x 10 a 12" },
+                { id: "t3_e6", nome: "Rosca Scott", series: "3x 10 a 12" },
+                { id: "t3_e7", nome: "Rosca Inclinada Halteres", series: "3x 10 a 12" },
+                { id: "t3_e8", nome: "Cardio", series: "30 min (Moderado)" }
+            ]
+        },
+        {
+            titulo: "4º TREINO: EVOLUÇÃO CARDIO (FOCO TAF)",
+            exercicios: [
+                { id: "t4_e1", nome: "Fase Atual: Esteira Inclinada", series: "40 min (Vel 4.5/5.0 - Inclin. 15)" },
+                { id: "t4_e2", nome: "Próxima Fase: Transição", series: "3 min Rápido / 2 min Trote" }
+            ]
+        },
+        {
+            titulo: "5º TREINO: INFERIORES (Foco Posterior e Glúteo)",
+            exercicios: [
+                { id: "t5_e1", nome: "Mesa Flexora", series: "4x 10 a 12" },
+                { id: "t5_e2", nome: "Stiff Barra/Halteres", series: "3x 10 a 12" },
+                { id: "t5_e3", nome: "Elevação Pélvica com Barra", series: "3x 10 a 12 (Pico 2s)" },
+                { id: "t5_e4", nome: "Cadeira Abdutora", series: "3x 10 a 12" },
+                { id: "t5_e5", nome: "Leg Press Pés Altos", series: "3x 10 a 12" },
+                { id: "t5_e6", nome: "Panturrilha em Pé", series: "4x 10 a 12" },
+                { id: "t5_e7", nome: "Abdominal Infra", series: "3x 10 a 12" },
+                { id: "t5_e8", nome: "Abdominal Supra na Polia", series: "3x 10 a 12" }
+            ]
+        },
+        {
+            titulo: "6º TREINO: OMBRO / BÍCEPS / TRÍCEPS",
+            exercicios: [
+                { id: "t6_e1", nome: "Desenvolvimento Máquina/Barra", series: "3x 10 a 12" },
+                { id: "t6_e2", nome: "Elevação Lateral Halteres", series: "4x 10 a 12" },
+                { id: "t6_e3", nome: "Elevação Frontal Anilha", series: "3x 10 a 12" },
+                { id: "t6_e4", nome: "Rosca Direta Barra Reta", series: "4x 10 a 12" },
+                { id: "t6_e5", nome: "Rosca Martelo na Polia", series: "3x 10 a 12" },
+                { id: "t6_e6", nome: "Tríceps Testa Halteres", series: "4x 10 a 12" },
+                { id: "t6_e7", nome: "Tríceps Pulley Barra Reta", series: "3x 10 a 12" },
+                { id: "t6_e8", nome: "Cardio", series: "30 min (Moderado)" }
+            ]
+        }
+    ];
+
+    // Carregar treino do LocalStorage ou usar o Default
+    let treinoData = JSON.parse(localStorage.getItem('treino_ativo')) || treinoDefault;
+
+    // Função de Renderizar o HTML
+    function renderTreino() {
+        const container = document.getElementById('app-treino');
+        container.innerHTML = ""; // Limpa antes de desenhar
+        
+        treinoData.forEach(dia => {
+            let html = `<div class="card"><h3>${dia.titulo}</h3>`;
+            dia.exercicios.forEach(ex => {
+                const savedPeso = localStorage.getItem(`peso_${ex.id}`) || "";
+                const isDone = localStorage.getItem(`done_${ex.id}`) === "true" ? "checked" : "";
+                
+                html += `
+                    <div class="exercise-row">
+                        <div class="exercise-info">
+                            <b>${ex.nome}</b>
+                            <span>${ex.series}</span>
+                        </div>
+                        <input type="number" placeholder="kg" value="${savedPeso}" onchange="savePeso('${ex.id}', this.value)">
+                        <input type="checkbox" class="checkbox" ${isDone} onclick="toggleDone('${ex.id}')">
+                    </div>`;
+            });
+            html += `</div>`;
+            container.innerHTML += html;
+        });
+    }
+
+    // Salvar no navegador
+    function savePeso(id, val) { localStorage.setItem(`peso_${id}`, val); }
+    function toggleDone(id) {
+        const current = localStorage.getItem(`done_${id}`) === "true";
+        localStorage.setItem(`done_${id}`, !current);
+    }
+
+    // Importar Novo Treino
+    function importarTreino() {
+        try {
+            const inputData = document.getElementById('importData').value;
+            const novoTreino = JSON.parse(inputData);
+            localStorage.setItem('treino_ativo', JSON.stringify(novoTreino));
+            treinoData = novoTreino;
+            renderTreino();
+            alert("Treino atualizado com sucesso!");
+            document.getElementById('importData').value = "";
+        } catch (e) {
+            alert("Erro ao importar. Verifique se copiou o código inteiro corretamente.");
+        }
+    }
+
+    // Lógica do Cronômetro
+    let timeLeft = 720; // 12 minutos
+    let timerInterval = null;
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    function updateDisplay() {
+        document.getElementById('timer-display').innerText = formatTime(timeLeft);
+    }
+
+    function startTimer() {
+        if (timerInterval) return; // Evita múltiplos intervalos
+        timerInterval = setInterval(() => {
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                alert("Tempo esgotado! TAF concluído.");
+                return;
+            }
+            timeLeft--;
+            updateDisplay();
+        }, 1000);
+    }
+
+    function pauseTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        timeLeft = 720;
+        updateDisplay();
+    }
+
+    // Inicializa o app
+    renderTreino();
+</script>
+
+</body>
+</html>
